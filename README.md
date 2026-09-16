@@ -106,3 +106,4 @@ O manual e o guia também estão em Ajuda. Consulte os limites antes de adoção
 ## Avaliação preparada neste computador
 
 O ambiente local já possui dados fictícios. Consulte `.demo-access.txt` para entrar e [Validação da entrega](docs/validacao.md) para resultados e instruções de reinício do PostgreSQL temporário. Para reproduzir exatamente as dependências verificadas, utilize `requirements.lock.txt`. Não use o banco temporário nem a conta de demonstração na operação real da empresa.
+# Projeto_Estoque
