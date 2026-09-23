@@ -1,5 +1,7 @@
 # Validação da entrega
 
+Este documento registra a entrega inicial. Para a preparação de produção, etiquetas e reconhecimento por foto, consulte [Validação para Render](validacao_render.md).
+
 Data: 14/09/2026. Ambiente: Python 3.14.4, Django 5.2.17 e PostgreSQL 18.6 local isolado.
 
 ## Resultados

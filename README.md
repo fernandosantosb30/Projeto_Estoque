@@ -1,3 +1,5 @@
+> **Preparação para nuvem e etiquetas:** veja [Deploy no Render](docs/deploy_render.md) e [Padrão de etiquetas](docs/etiquetas.md). Uma empresa por instalação. A publicação real e contratação dos recursos ainda não foram realizadas.
+
 # Palco · Gestão de equipamentos por evento
 
 Aplicação Django para uma empresa de sonorização e palcos, com reservas, kits, expedição, devolução, manutenção, auditoria, relatórios e ajuda integrada. Interface em português, responsiva, com Bootstrap local. PostgreSQL é obrigatório, inclusive nos testes de concorrência.
@@ -18,6 +20,8 @@ Copie a chave gerada para DJANGO_SECRET_KEY. Edite `.env` com um banco PostgreSQ
 ```bash
 .venv/bin/python manage.py migrate
 .venv/bin/python manage.py setup_roles
+.venv/bin/python manage.py createcachetable
+.venv/bin/python manage.py collectstatic --noinput
 .venv/bin/python manage.py createsuperuser
 .venv/bin/python manage.py runserver 127.0.0.1:8000
 ```
@@ -55,7 +59,7 @@ Abra os três eventos e confira as unidades vinculadas. Em um deles, separe e ex
 ```bash
 .venv/bin/python manage.py check
 .venv/bin/python manage.py makemigrations --check --dry-run
-.venv/bin/python manage.py test inventory --verbosity 2
+.venv/bin/python manage.py test inventory --settings=config.test_settings --verbosity 2
 ```
 
 A suíte cria `test_<POSTGRES_DB>`. Nunca aponte testes a uma instância de produção. Inclui transações em conexões independentes para duas reservas concorrentes, intervalos sobrepostos/disjuntos, três eventos, kits, ajustes, saída e retorno parcial, avarias, manutenção, perdas, consumo, dispensa de expedição, permissões, CSRF, CSV e renderização das telas.
@@ -101,9 +105,14 @@ Para agendar em produção, o administrador deve criar um timer do sistema ou jo
 - [Guia de organização da empresa](docs/guia_operacional.md)
 - [Arquitetura, premissas e limites](docs/arquitetura.md)
 
-O manual e o guia também estão em Ajuda. Consulte os limites antes de adoção: não há estorno genérico, alteração de datas após primeira saída, importação em massa ou paginação. Perfis de aplicação não substituem proteção do banco e da infraestrutura.
+O manual e o guia também estão em Ajuda. Consulte os limites antes de adoção: não há estorno genérico, alteração de datas após primeira saída, importação em massa ou paginação de relatórios. Perfis de aplicação não substituem proteção do banco e da infraestrutura.
 
 ## Avaliação preparada neste computador
 
 O ambiente local já possui dados fictícios. Consulte `.demo-access.txt` para entrar e [Validação da entrega](docs/validacao.md) para resultados e instruções de reinício do PostgreSQL temporário. Para reproduzir exatamente as dependências verificadas, utilize `requirements.lock.txt`. Não use o banco temporário nem a conta de demonstração na operação real da empresa.
 # Projeto_Estoque
+
+
+## Leitura de fotos
+
+Além das dependências Python, instale Tesseract e inglês para códigos alfanuméricos. Em Debian/Ubuntu: `sudo apt-get install tesseract-ocr tesseract-ocr-eng fonts-dejavu-core`. O Dockerfile já inclui esses pacotes. TESSERACT_CMD permite caminho personalizado. A suíte usa Tesseract real e DejaVuSansMono-Bold; execute com `--settings=config.test_settings`. Em produção, o cache é compartilhado no PostgreSQL e os estáticos usam manifesto WhiteNoise.

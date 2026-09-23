@@ -1,3 +1,4 @@
+import uuid
 import calendar
 import csv
 from datetime import datetime, timedelta
@@ -11,6 +12,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.db.models import Q
+from django.core.paginator import Paginator
 from django.http import Http404, HttpResponse, FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -88,7 +90,9 @@ def event_edit(request,pk=None):
 @access(*ALL)
 def event_detail(request,pk):
     ev=event_visible(request,pk)
-    return render(request,'inventory/event.html',{'event':ev,'lines':ev.lines.select_related('asset__product__category','asset__location'),'assets':Asset.objects.filter(active=True,product__active=True),'kits':Kit.objects.filter(active=True),'alerts':s.conflicts(ev) if ev.status in s.ACTIVE else [],'history':ev.audit_set.select_related('actor')[:80]})
+    lines=list(ev.lines.select_related('asset__product__category','asset__location'))
+    for line in lines: line.request_key=uuid.uuid4()
+    return render(request,'inventory/event.html',{'event':ev,'lines':lines,'assets':Asset.objects.filter(active=True,product__active=True),'kits':Kit.objects.filter(active=True),'alerts':s.conflicts(ev) if ev.status in s.ACTIVE else [],'history':ev.audit_set.select_related('actor')[:80]})
 
 @require_POST
 @access('Gestor','Estoque')
@@ -135,7 +139,7 @@ def catalog(request,kind):
     q=request.GET.get('q','')
     if q:
         qs=qs.filter(Q(code__icontains=q)|Q(serial__icontains=q)|Q(product__name__icontains=q)) if model==Asset else qs.filter(name__icontains=q)
-    return render(request,'inventory/catalog.html',{'objects':qs,'kind':kind,'title':title})
+    return render(request,'inventory/catalog.html',{'objects':Paginator(qs,40).get_page(request.GET.get('page')),'kind':kind,'title':title})
 
 @access('Gestor')
 def catalog_edit(request,kind,pk=None):
@@ -279,9 +283,9 @@ def reports(request):
 @access(*ALL)
 def help_page(request):
     name=request.GET.get('doc','manual_usuario')
-    if name not in ['manual_usuario','guia_operacional']: raise Http404
+    if name not in ['manual_usuario','guia_operacional','etiquetas']: raise Http404
     text=(settings.BASE_DIR/'docs'/f'{name}.md').read_text()
-    return render(request,'inventory/help.html',{'content':markdown.markdown(text,extensions=['tables','fenced_code']),'title':'Manual de utilização' if name=='manual_usuario' else 'Organização da empresa'})
+    return render(request,'inventory/help.html',{'content':markdown.markdown(text,extensions=['tables','fenced_code']),'title':{'manual_usuario':'Manual de utilização','guia_operacional':'Organização da empresa','etiquetas':'Padrão de etiquetas'}[name]})
 
 @access(*ALL)
 def private_media(request,kind,pk):
@@ -300,3 +304,47 @@ def private_media(request,kind,pk):
     response=FileResponse(obj.photo.open('rb'))
     response['Cache-Control']='private, no-store'
     return response
+
+@access('Gestor','Estoque')
+def label_print(request):
+    from .forms import LabelPrintForm
+    form=LabelPrintForm(request.POST or None)
+    if request.method=='POST' and form.is_valid():
+        return render(request,'inventory/labels_print.html',{'assets':form.cleaned_data['assets'],'layout':form.cleaned_data['layout'],'company':settings.COMPANY_NAME})
+    return render(request,'inventory/form.html',{'form':form,'title':'Gerar etiquetas','submit_label':'Gerar impressão','intro':'Selecione até 100 itens. Imprima em tamanho real (100%), sem cabeçalhos. Faça primeiro uma impressão de teste. Cada etiqueta mede 90 × 40 mm.'})
+
+@access(*ALL)
+def label_scan(request):
+    from .forms import LabelPhotoForm
+    from .labels import read_label
+    from django.core.cache import cache
+    form=LabelPhotoForm(request.POST or None,request.FILES or None)
+    candidates=[]; method=''; warning=''
+    ev=None
+    if request.GET.get('event'):
+        try: ev=event_visible(request,int(request.GET['event']))
+        except ValueError: raise Http404
+    if request.method=='POST' and form.is_valid():
+        # Cache PostgreSQL: limite compartilhado entre workers. Nenhuma foto é persistida.
+        key=f'label-scan:{request.user.pk}'
+        if not cache.add(key,True,timeout=10):
+            form.add_error(None,'Aguarde 10 segundos entre leituras de foto.')
+        else:
+            try:
+                result=read_label(form.cleaned_data['photo']);method=result['method'];warning=result['warning']
+                qs=Asset.objects.filter(Q(token__in=result['tokens'])|Q(code__in=result['codes'])).select_related('product','location')
+                if role(request.user)=='Equipe operacional': qs=qs.filter(lines__event__in=events_for(request.user)).distinct()
+                if ev: qs=qs.filter(lines__event=ev).distinct()
+                candidates=list(qs)
+                if not candidates and not warning: warning='Nenhum equipamento acessível foi identificado. Recorte a etiqueta, evite reflexos e tente novamente ou use o código manual.'
+            except ValidationError as exc: form.add_error(None,exc)
+    return render(request,'inventory/label_scan.html',{'form':form,'candidates':candidates,'method':method,'warning':warning,'event':ev})
+
+from django.views.decorators.http import require_GET
+@require_GET
+def health(request):
+    from django.db import connection, DatabaseError
+    try:
+        with connection.cursor() as cursor: cursor.execute('SELECT 1')
+    except DatabaseError: return HttpResponse('unavailable',status=503,content_type='text/plain')
+    return HttpResponse('ok',content_type='text/plain')

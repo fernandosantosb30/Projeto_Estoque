@@ -18,7 +18,7 @@ Entre com usuário e senha em `/entrar/`. O administrador pode redefinir senhas 
 1. Em **Modelos e categorias → Categorias**, cadastre Sonorização, Estruturas de palco e Acessórios, por exemplo.
 2. Em **Localizações**, cadastre endereços físicos como `Depósito A · Corredor 01 · Prateleira 02`.
 3. Em **Modelos e categorias**, crie cada especificação: nome, categoria, tipo de controle, marca e modelo. Informe mínimo para consumíveis.
-4. Em **Equipamentos → Novo cadastro**, vincule uma unidade ou lote ao modelo e local. Preencha código único, série, conservação e foto opcional. Compra e valor são opcionais; em lote, o valor informado é do cadastro como um todo.
+4. Em **Equipamentos → Novo cadastro**, vincule uma unidade ou lote ao modelo e local. O código EQ-000001 é gerado automaticamente. Preencha série, conservação e foto opcional. Compra e valor são opcionais; em lote, o valor informado é do cadastro como um todo.
 5. Abra a ficha do equipamento e use **Ajustar saldo**. Informe a quantidade contada como diferença positiva e a justificativa `Inventário inicial conferido em ... por ...`.
 6. Confira o relatório de patrimônio antes de operar.
 
@@ -28,7 +28,7 @@ Não altere o tipo de controle de um modelo que já possui equipamentos, nem tro
 
 ## 3. Etiquetas e QR Code
 
-Abra a ficha do equipamento e clique em **Imprimir ficha / etiqueta**. O navegador permite imprimir ou salvar em PDF. A ficha inclui código legível, descrição e QR. Não há diagramação de etiquetas adesivas em lote nesta versão.
+Abra a ficha do equipamento e clique em **Imprimir ficha / etiqueta**. O navegador permite imprimir ou salvar em PDF. A ficha inclui código legível, descrição e QR. Para etiquetas em lote, abra **Etiquetas**, selecione os itens e escolha A4 ou térmica de 90 × 40 mm. Imprima a 100%, sem cabeçalhos.
 
 O QR contém somente o endereço de identificação com identificador opaco. O acesso aos dados exige login e permissão. O administrador técnico deve configurar `PUBLIC_BASE_URL` para o endereço acessível aos celulares antes de imprimir etiquetas definitivas; `localhost` não funciona em outro dispositivo.
 
@@ -137,4 +137,9 @@ Para inventário, compare o relatório de patrimônio com a contagem física e a
 
 ## 11. Limites desta versão
 
-Sem financeiro completo, emissão fiscal, orçamento/contrato comercial, sublocação de terceiros, múltiplas empresas, notificações externas, uso offline, importação em massa, estorno genérico ou edição de datas após primeira saída. Alertas são internos ao sistema. Relatórios e listas não têm paginação nesta versão; avalie desempenho com o volume real antes da implantação. A leitura de câmera depende do navegador. Não há exclusão operacional de históricos; desative cadastros.
+Sem financeiro completo, emissão fiscal, orçamento/contrato comercial, sublocação de terceiros, múltiplas empresas, notificações externas, uso offline, importação em massa, estorno genérico ou edição de datas após primeira saída. Alertas são internos ao sistema. Cadastros possuem páginas de 40 itens; relatórios e agenda ainda não são paginados; avalie desempenho com o volume real antes da implantação. A leitura de câmera depende do navegador. Não há exclusão operacional de históricos; desative cadastros.
+
+
+## Novos códigos e identificação por foto
+
+Novos cadastros recebem códigos EQ-000001 em sequência; os antigos são preservados. Use **Identificar por foto** para ler o QR ou o código EQ impresso. Confirme o resultado antes de operar. A leitura não movimenta estoque. Consulte o [guia de etiquetas](/ajuda/?doc=etiquetas) para tamanhos, limites e procedimento.

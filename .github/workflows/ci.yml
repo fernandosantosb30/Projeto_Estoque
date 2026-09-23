@@ -1,0 +1,40 @@
+name: Validate application
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: palco
+          POSTGRES_USER: palco
+          POSTGRES_PASSWORD: ci-only-not-production
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DJANGO_SECRET_KEY: ci-only-long-test-secret-not-for-production-use-123456789
+      DJANGO_DEBUG: '1'
+      POSTGRES_DB: palco
+      POSTGRES_USER: palco
+      POSTGRES_PASSWORD: ci-only-not-production
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: '5432'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y tesseract-ocr fonts-dejavu-core
+      - run: pip install -r requirements.lock.txt
+      - run: python manage.py makemigrations --check --dry-run
+      - run: python manage.py test inventory --settings=config.test_settings
+      - run: python manage.py collectstatic --noinput
+      - run: python manage.py check --deploy --fail-level WARNING
+        env:
+          DJANGO_DEBUG: '0'
+          PUBLIC_BASE_URL: https://palco.example.com
+      - run: docker build -t palco-ci .

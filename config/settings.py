@@ -37,3 +37,56 @@ CSRF_COOKIE_SECURE = not DEBUG
 SECURE_SSL_REDIRECT = os.environ.get('DJANGO_SECURE_SSL_REDIRECT','0') == '1'
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
+
+# Produção: Render usa URL de banco, proxy HTTPS e disco persistente privado.
+import dj_database_url
+from urllib.parse import urlsplit
+from datetime import timedelta
+if os.environ.get('DATABASE_URL'):
+    DATABASES['default'] = dj_database_url.parse(os.environ['DATABASE_URL'],conn_max_age=60,conn_health_checks=True)
+    if not DATABASES['default']['ENGINE'].endswith('postgresql'):
+        raise ImproperlyConfigured('DATABASE_URL deve usar PostgreSQL.')
+DATABASES['default'].setdefault('OPTIONS',{}).update(connect_timeout=10)
+RENDER = os.environ.get('RENDER','').lower() == 'true'
+render_host=os.environ.get('RENDER_EXTERNAL_HOSTNAME','')
+if render_host:
+    ALLOWED_HOSTS.append(render_host)
+    if not os.environ.get('PUBLIC_BASE_URL'): PUBLIC_BASE_URL='https://'+render_host
+ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS if h.strip()]
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS',PUBLIC_BASE_URL).split(',') if o.strip()]
+MEDIA_ROOT = Path(os.environ.get('MEDIA_ROOT',str(BASE_DIR/'media')))
+COMPANY_NAME=os.environ.get('COMPANY_NAME','Palco')
+TESSERACT_CMD=os.environ.get('TESSERACT_CMD','')
+MIDDLEWARE.insert(1,'whitenoise.middleware.WhiteNoiseMiddleware')
+STORAGES={'default':{'BACKEND':'django.core.files.storage.FileSystemStorage'},'staticfiles':{'BACKEND':'whitenoise.storage.CompressedManifestStaticFilesStorage'}}
+if not DEBUG:
+    # O segredo gerado pelo Render tem 256 bits em base64 (44 caracteres).
+    if RENDER and 32 <= len(SECRET_KEY) < 50:
+        import hashlib
+        SECRET_KEY=hashlib.sha256(SECRET_KEY.encode()).hexdigest()
+    if len(SECRET_KEY)<50 or SECRET_KEY.startswith('gere-'):
+        raise ImproperlyConfigured('Produção exige DJANGO_SECRET_KEY aleatória com pelo menos 50 caracteres.')
+    if '*' in ALLOWED_HOSTS: raise ImproperlyConfigured('Não use curinga em ALLOWED_HOSTS.')
+    if urlsplit(PUBLIC_BASE_URL).scheme!='https': raise ImproperlyConfigured('PUBLIC_BASE_URL deve usar HTTPS em produção.')
+    if RENDER and not os.environ.get('MEDIA_ROOT'): raise ImproperlyConfigured('Configure MEDIA_ROOT no disco persistente do Render.')
+    SECURE_SSL_REDIRECT=True
+    SECURE_HSTS_SECONDS=int(os.environ.get('DJANGO_HSTS_SECONDS','3600'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS=True
+    SECURE_HSTS_PRELOAD=True
+SECURE_REDIRECT_EXEMPT=[r'^healthz/$']
+# Render controla o proxy externo. Outros provedores devem habilitar explicitamente.
+if RENDER or os.environ.get('TRUST_PROXY_HTTPS')=='1':
+    SECURE_PROXY_SSL_HEADER=('HTTP_X_FORWARDED_PROTO','https')
+SECURE_REFERRER_POLICY='same-origin'
+SESSION_COOKIE_AGE=8*60*60
+INSTALLED_APPS.append('axes')
+MIDDLEWARE.append('axes.middleware.AxesMiddleware')
+AUTHENTICATION_BACKENDS=['axes.backends.AxesStandaloneBackend','django.contrib.auth.backends.ModelBackend']
+AXES_FAILURE_LIMIT=5
+AXES_COOLOFF_TIME=timedelta(minutes=15)
+AXES_LOCKOUT_PARAMETERS=[['username','ip_address']]
+AXES_RESET_ON_SUCCESS=True
+AXES_CLIENT_IP_CALLABLE=lambda request: None
+AXES_LOCKOUT_TEMPLATE='registration/locked.html'
+CACHES={'default':{'BACKEND':'django.core.cache.backends.db.DatabaseCache','LOCATION':'palco_cache','TIMEOUT':60}}
+LOGGING={'version':1,'disable_existing_loggers':False,'handlers':{'console':{'class':'logging.StreamHandler'}},'root':{'handlers':['console'],'level':'INFO'},'loggers':{'axes':{'level':'WARNING'}}}

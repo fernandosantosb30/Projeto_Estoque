@@ -17,10 +17,15 @@
 
 ## Fora do escopo
 
-Financeiro, contratos, fiscal, multiempresa, materiais de terceiros, frota, notificações externas e offline. A versão também não tem importação em massa, paginação, estorno operacional genérico, etiquetas em lote e edição de datas depois da primeira saída. Esses limites estão no manual. Volumes elevados pedem paginação, otimização de consultas e medição de carga antes de expansão.
+Financeiro, contratos, fiscal, multiempresa, materiais de terceiros, frota, notificações externas e offline. A versão também não tem importação em massa, paginação, estorno operacional genérico, edição de datas depois da primeira saída. Esses limites estão no manual. Volumes elevados pedem paginação, otimização de consultas e medição de carga antes de expansão.
 
 ## Referências técnicas
 
 - Django 5.2 LTS: https://docs.djangoproject.com/en/5.2/releases/5.2/
 - Transações: https://docs.djangoproject.com/en/5.2/topics/db/transactions/
 - Bloqueios consultivos PostgreSQL: https://www.postgresql.org/docs/current/explicit-locking.html#ADVISORY-LOCKS
+
+
+## Preparação de produção e etiquetas
+
+Docker/Blueprint para Render, uma instalação por empresa, com WhiteNoise e fotos em disco privado persistente. Novos códigos EQ são gerados dentro do serviço serializado e imutáveis pela interface. Fotos são lidas por ZXing-C++ e Tesseract, sem serviços externos. OCR exige conferência humana. Formulários de movimentação incluem UUID persistido na auditoria contra reenvio duplicado. Limitação de leituras usa cache compartilhado no banco. Login utiliza django-axes por conta, sem confiar em IP informado pelo cliente.

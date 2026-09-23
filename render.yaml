@@ -1,0 +1,38 @@
+# Uma implantação por empresa. Recursos pagos: revisar valores no painel antes de criar.
+services:
+  - type: web
+    name: palco
+    runtime: docker
+    plan: 1c-2g
+    region: virginia
+    healthCheckPath: /healthz/
+    autoDeployTrigger: "off"
+    disk:
+      name: palco-media
+      mountPath: /var/data
+      sizeGB: 10
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "0"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: palco-db
+          property: connectionString
+      - key: MEDIA_ROOT
+        value: /var/data/media
+      - key: COMPANY_NAME
+        sync: false
+      - key: WEB_CONCURRENCY
+        value: "2"
+      - key: OMP_THREAD_LIMIT
+        value: "1"
+databases:
+  - name: palco-db
+    databaseName: palco
+    user: palco
+    plan: 0.1c-256mb
+    region: virginia
+    postgresMajorVersion: "17"
+    ipAllowList: []

@@ -5,7 +5,7 @@ from functools import wraps
 from django.db import transaction, connection
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from .models import Asset, Event, EventLine, Kit, Maintenance, Audit
+from .models import Asset, Event, EventLine, Kit, Maintenance, Audit, CodeSequence
 from .access import require
 ACTIVE = ['reserved','picking','out','checking']
 
@@ -76,8 +76,17 @@ def save_event(actor,form):
 def save_catalog(actor,form):
     require(actor,['Gestor'])
     obj = form.instance
+    if isinstance(obj,Asset) and not obj.pk:
+        seq,_ = CodeSequence.objects.get_or_create(name='equipment')
+        while True:
+            seq.value += 1
+            if seq.value > 999999: raise ValidationError('Limite de códigos atingido. Contate o suporte.')
+            obj.code = f'EQ-{seq.value:06d}'
+            if not Asset.objects.filter(code__iexact=obj.code).exists(): break
+        seq.save(update_fields=['value'])
     if isinstance(obj,Asset) and obj.pk:
         old = Asset.objects.get(pk=obj.pk)
+        obj.code = old.code
         obj.total = old.total
         if old.product_id != obj.product_id and (old.total or old.lines.exists()):
             raise ValidationError('Não altere o modelo de um item com saldo ou histórico.')
@@ -187,9 +196,13 @@ def transition(actor,event_id,action):
     audit(actor,'Situação do evento',ev,detail=ev.get_status_display())
 
 @serialized
-def movement(actor,line_id,action,quantity,reason='',photo=''):
+def movement(actor,line_id,action,quantity,reason='',photo='',request_key=None):
     require(actor,['Gestor'] if action in ['loss','waive'] else ['Gestor','Estoque'])
     positive(quantity)
+    if request_key and Audit.objects.filter(request_key=request_key).exists():
+        prior = Audit.objects.get(request_key=request_key)
+        if prior.actor_id != actor.pk: raise ValidationError('Identificador de operação inválido.')
+        return
     line = EventLine.objects.select_related('event','asset__product').get(pk=line_id)
     ev,asset = line.event,line.asset
     if ev.status not in ACTIVE: raise ValidationError('Evento não está ativo.')
@@ -198,7 +211,9 @@ def movement(actor,line_id,action,quantity,reason='',photo=''):
         line.separated += quantity
         if ev.status == 'reserved': ev.status = 'picking'
     elif action == 'dispatch':
-        validate_reservation(ev)
+        free = capacity(asset,ev.withdrawal,ev.release,ev.pk)
+        if line.quantity-line.waived-line.written_off-line.cleared > free:
+            raise ValidationError('Reserva deste equipamento está em conflito. Confira a disponibilidade.')
         if quantity > min(line.separated-line.sent,line.to_send) or quantity > asset.available: raise ValidationError('Quantidade supera os itens separados ou fisicamente disponíveis.')
         line.sent += quantity
         ev.status = 'out'
@@ -230,7 +245,10 @@ def movement(actor,line_id,action,quantity,reason='',photo=''):
     line.save()
     ev.save(update_fields=['status'])
     labels = {'separate':'Separação','dispatch':'Saída','return':'Devolução','clear':'Conferência e liberação','damage':'Avaria e manutenção','loss':'Baixa por perda','consume':'Consumo','waive':'Dispensa de expedição autorizada'}
-    audit(actor,labels[action],ev,asset,quantity,reason,photo)
+    entry = audit(actor,labels[action],ev,asset,quantity,reason,photo)
+    if request_key:
+        entry.request_key = request_key
+        entry.save(update_fields=['request_key'])
 
 @serialized
 def open_maintenance(actor,form):

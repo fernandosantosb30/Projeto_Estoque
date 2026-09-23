@@ -134,6 +134,7 @@ class Maintenance(models.Model):
     def __str__(self): return f'OS {self.pk} · {self.asset}'
 
 class Audit(models.Model):
+    request_key = models.UUIDField(null=True, blank=True, unique=True, editable=False)
     at = models.DateTimeField(auto_now_add=True)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT)
     action = models.CharField(max_length=60)
@@ -144,3 +145,8 @@ class Audit(models.Model):
     photo = models.ImageField(upload_to='occurrences/%Y/%m/',blank=True)
     class Meta:
         ordering = ['-at','-pk']
+
+
+class CodeSequence(models.Model):
+    name = models.CharField(max_length=20,primary_key=True)
+    value = models.PositiveIntegerField(default=0)

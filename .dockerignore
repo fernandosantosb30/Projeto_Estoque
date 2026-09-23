@@ -1,0 +1,12 @@
+.git
+.env
+.env.*
+.demo-access.txt
+.venv
+__pycache__
+*.pyc
+media
+staticfiles
+backups
+.pytest_cache
+.coverage
