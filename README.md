@@ -1,5 +1,7 @@
 > **Preparação para nuvem e etiquetas:** veja [Deploy no Render](docs/deploy_render.md) e [Padrão de etiquetas](docs/etiquetas.md). Uma empresa por instalação. A publicação real e contratação dos recursos ainda não foram realizadas.
 
+> **Apresentação gratuita:** use [Render Free + Neon](docs/deploy_render_gratuito.md) com `render.demo.yaml`. O `render.yaml` padrão prevê recursos pagos.
+
 # Palco · Gestão de equipamentos por evento
 
 Aplicação Django para uma empresa de sonorização e palcos, com reservas, kits, expedição, devolução, manutenção, auditoria, relatórios e ajuda integrada. Interface em português, responsiva, com Bootstrap local. PostgreSQL é obrigatório, inclusive nos testes de concorrência.

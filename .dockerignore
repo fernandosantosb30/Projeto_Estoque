@@ -10,3 +10,15 @@ staticfiles
 backups
 .pytest_cache
 .coverage
+secrets
+private
+*.pem
+*.key
+*.p12
+*.pfx
+*.dump
+*.sql
+*.sql.gz
+*.log
+*.sqlite3
+*.sqlite3-*

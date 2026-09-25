@@ -3,6 +3,7 @@ from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from .models import Event
+from django.conf import settings
 
 def role(user):
     if not user.is_authenticated: return ''
@@ -31,4 +32,4 @@ def events_for(user):
 
 def navigation(request):
     r = role(request.user)
-    return {'user_role':r,'can_manage':r in ['Administrador','Gestor'],'can_operate':r in ['Administrador','Gestor','Estoque']}
+    return {'user_role':r,'can_manage':r in ['Administrador','Gestor'],'can_operate':r in ['Administrador','Gestor','Estoque'],'demo_mode':settings.DEMO_MODE}

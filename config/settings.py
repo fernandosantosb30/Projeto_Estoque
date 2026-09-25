@@ -8,6 +8,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
 if not SECRET_KEY:
     raise ImproperlyConfigured('Configure DJANGO_SECRET_KEY no ambiente ou .env.')
 DEBUG = os.environ.get('DJANGO_DEBUG', '0') == '1'
+DEMO_MODE = os.environ.get('DEMO_MODE', '0') == '1'
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 INSTALLED_APPS = ['django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages', 'django.contrib.staticfiles', 'inventory']
 MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'django.contrib.sessions.middleware.SessionMiddleware', 'django.middleware.common.CommonMiddleware', 'django.middleware.csrf.CsrfViewMiddleware', 'django.contrib.auth.middleware.AuthenticationMiddleware', 'django.contrib.messages.middleware.MessageMiddleware', 'django.middleware.clickjacking.XFrameOptionsMiddleware']
@@ -68,7 +69,7 @@ if not DEBUG:
         raise ImproperlyConfigured('Produção exige DJANGO_SECRET_KEY aleatória com pelo menos 50 caracteres.')
     if '*' in ALLOWED_HOSTS: raise ImproperlyConfigured('Não use curinga em ALLOWED_HOSTS.')
     if urlsplit(PUBLIC_BASE_URL).scheme!='https': raise ImproperlyConfigured('PUBLIC_BASE_URL deve usar HTTPS em produção.')
-    if RENDER and not os.environ.get('MEDIA_ROOT'): raise ImproperlyConfigured('Configure MEDIA_ROOT no disco persistente do Render.')
+    if RENDER and not os.environ.get('MEDIA_ROOT'): raise ImproperlyConfigured('Configure MEDIA_ROOT; use disco persistente na operação real.')
     SECURE_SSL_REDIRECT=True
     SECURE_HSTS_SECONDS=int(os.environ.get('DJANGO_HSTS_SECONDS','3600'))
     SECURE_HSTS_INCLUDE_SUBDOMAINS=True

@@ -1,0 +1,32 @@
+# Demonstração gratuita: banco Neon externo, sem disco persistente.
+services:
+  - type: web
+    name: palco-demo
+    runtime: docker
+    plan: free
+    region: virginia
+    healthCheckPath: /healthz/
+    autoDeployTrigger: "off"
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "0"
+      - key: DEMO_MODE
+        value: "1"
+      - key: DATABASE_URL
+        sync: false
+      - key: MEDIA_ROOT
+        value: /var/data/media
+      - key: COMPANY_NAME
+        sync: false
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: GUNICORN_THREADS
+        value: "1"
+      - key: OMP_THREAD_LIMIT
+        value: "1"
+      - key: BOOTSTRAP_ADMIN_USERNAME
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false

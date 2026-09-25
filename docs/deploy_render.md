@@ -1,5 +1,7 @@
 # Publicação no Render
 
+Para apresentar sem mensalidade, siga [Demonstração gratuita com Neon](deploy_render_gratuito.md) e selecione `render.demo.yaml`. Este guia abaixo descreve a instalação paga com fotos persistentes.
+
 Esta versão contém Dockerfile e Blueprint para **uma empresa por instalação**. Para outro cliente, crie outro serviço, banco, disco, segredo e domínio. Grupos de usuários não isolam empresas dentro do mesmo banco.
 
 ## Configuração preparada
