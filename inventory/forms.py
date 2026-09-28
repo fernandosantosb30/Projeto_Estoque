@@ -77,3 +77,14 @@ class LabelPrintForm(forms.Form):
         qs=self.cleaned_data['assets']
         if qs.count()>100: raise ValidationError('Selecione no máximo 100 etiquetas por impressão.')
         return qs
+
+class ScannerForm(forms.Form):
+    code = forms.CharField(label='Leia a etiqueta', max_length=500, widget=forms.TextInput(attrs={'class':'form-control','autofocus':True,'autocomplete':'off','placeholder':'Código ou QR Code lido pelo scanner'}))
+
+class AssetBatchForm(forms.Form):
+    request_key = forms.UUIDField(widget=forms.HiddenInput)
+    product = forms.ModelChoiceField(label='Modelo individual', queryset=Product.objects.filter(active=True,kind='unit'))
+    location = forms.ModelChoiceField(label='Localização', queryset=Location.objects.filter(active=True))
+    quantity = forms.IntegerField(label='Quantidade de equipamentos', min_value=1, max_value=100)
+    condition = forms.CharField(label='Condição', max_length=100, initial='Bom')
+    confirm = forms.BooleanField(label='Conferi os equipamentos: registrar uma unidade em estoque para cada etiqueta.')

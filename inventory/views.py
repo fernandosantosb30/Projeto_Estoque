@@ -308,7 +308,7 @@ def private_media(request,kind,pk):
 @access('Gestor','Estoque')
 def label_print(request):
     from .forms import LabelPrintForm
-    form=LabelPrintForm(request.POST or None)
+    form=LabelPrintForm(request.POST or None,initial={'assets':request.GET.getlist('assets')[:100]})
     if request.method=='POST' and form.is_valid():
         return render(request,'inventory/labels_print.html',{'assets':form.cleaned_data['assets'],'layout':form.cleaned_data['layout'],'company':settings.COMPANY_NAME})
     return render(request,'inventory/form.html',{'form':form,'title':'Gerar etiquetas','submit_label':'Gerar impressão','intro':'Selecione até 100 itens. Imprima em tamanho real (100%), sem cabeçalhos. Faça primeiro uma impressão de teste. Cada etiqueta mede 90 × 40 mm.'})
@@ -348,3 +348,30 @@ def health(request):
         with connection.cursor() as cursor: cursor.execute('SELECT 1')
     except DatabaseError: return HttpResponse('unavailable',status=503,content_type='text/plain')
     return HttpResponse('ok',content_type='text/plain')
+
+@access(*ALL)
+def scanner(request):
+    from .forms import ScannerForm
+    from .labels import qr_token
+    form=ScannerForm(request.GET or None)
+    if form.is_valid():
+        value=form.cleaned_data['code'].strip()
+        token=qr_token(value)
+        qs=Asset.objects.all()
+        if role(request.user)=='Equipe operacional':
+            qs=qs.filter(lines__event__in=events_for(request.user)).distinct()
+        obj=qs.filter(token=token).first() if token else qs.filter(code__iexact=value).first()
+        if obj: return redirect('asset',token=obj.token)
+        form.add_error('code','Etiqueta não encontrada ou sem permissão de acesso. Confira o código. Para equipamento novo, use Cadastro em lote ou Novo cadastro.')
+    return render(request,'inventory/scanner.html',{'form':form})
+
+@access('Gestor')
+def asset_batch(request):
+    from .forms import AssetBatchForm
+    form=AssetBatchForm(request.POST or None,initial={'request_key':uuid.uuid4()})
+    if request.method=='POST' and form.is_valid():
+        try:
+            assets=s.create_asset_batch(request.user,form.cleaned_data)
+            return redirect('/etiquetas/?'+ '&'.join(f'assets={a.pk}' for a in assets))
+        except ValidationError as exc: form.add_error(None,exc)
+    return render(request,'inventory/form.html',{'form':form,'title':'Cadastrar equipamentos em lote','submit_label':'Cadastrar e preparar etiquetas','intro':'Para equipamentos individuais iguais: informe modelo, local e quantidade. Cada unidade recebe seu próprio código e saldo inicial de 1. Números de série e fotos podem ser preenchidos depois em cada ficha. Para cabos por quantidade ou consumíveis, use o cadastro habitual.'})

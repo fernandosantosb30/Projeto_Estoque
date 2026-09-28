@@ -273,3 +273,28 @@ def close_maintenance(actor,pk,condition,cost):
     obj.asset.condition = condition
     obj.asset.save(update_fields=['condition'])
     audit(actor,'Manutenção liberada',asset=obj.asset,quantity=obj.quantity,detail=f'OS {obj.pk}: {condition}. Custo R$ {cost}')
+
+@serialized
+def create_asset_batch(actor, data):
+    """Cadastro e saldo atômicos; o reenvio do mesmo formulário não cria outro lote."""
+    import json
+    from .forms import AssetForm
+    require(actor, ['Gestor'])
+    previous = Audit.objects.filter(request_key=data['request_key']).first()
+    if previous:
+        if previous.actor_id != actor.pk or previous.action != 'Cadastro em lote':
+            raise ValidationError('Formulário já utilizado. Abra um novo cadastro.')
+        return list(Asset.objects.filter(pk__in=json.loads(previous.detail)).order_by('code'))
+    if data['product'].kind != 'unit' or not data['product'].active or not data['location'].active:
+        raise ValidationError('Selecione modelo individual e localização ativos.')
+    if not 1 <= data['quantity'] <= 100 or not data['confirm']:
+        raise ValidationError('Confira entre 1 e 100 equipamentos.')
+    assets=[]
+    for _ in range(data['quantity']):
+        form=AssetForm(data={'product':data['product'].pk,'location':data['location'].pk,'condition':data['condition'],'active':True})
+        if not form.is_valid(): raise ValidationError('Dados inválidos para cadastro do equipamento.')
+        asset=save_catalog(actor,form)
+        adjust(actor,asset.pk,1,'Inventário inicial conferido no cadastro em lote')
+        assets.append(asset)
+    Audit.objects.create(actor=actor,action='Cadastro em lote',request_key=data['request_key'],quantity=len(assets),detail=json.dumps([a.pk for a in assets]))
+    return assets

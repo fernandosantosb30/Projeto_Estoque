@@ -43,3 +43,15 @@ Equipe operacional só consulta equipamentos dos eventos atribuídos. A leitura 
 Configure domínio HTTPS definitivo antes de imprimir. `127.0.0.1` e `localhost` não funcionam no celular para acessar outro computador. Se mudar o domínio, planeje redirecionamento/reimpressão; o código impresso permanece válido.
 
 Câmera ao vivo depende do navegador e de permissão. Enviar uma foto é uma alternativa que não exige a API BarcodeDetector. A operação continua exigindo conexão à internet.
+
+## Scanner e cadastro em lote
+
+Em **Equipamentos → Cadastro em lote**, selecione um modelo de controle individual, localização, condição e quantidade (até 100). Confirme a contagem física. O sistema cria um patrimônio por unidade, com código automático e saldo inicial de 1, e abre a seleção de etiquetas já preenchida. Escolha A4 ou térmica e gere a impressão. Um reenvio do mesmo formulário não repete o lote; iniciar outro formulário representa uma nova entrada.
+
+Para lotes de cabos e consumíveis, continue usando o cadastro e ajuste de saldo habituais. Não crie patrimônios individuais para itens que pretende controlar por quantidade. Fotos e números de série específicos podem ser preenchidos depois em cada ficha individual.
+
+Use **Ler com scanner** com um leitor **2D que leia QR Code**, USB ou Bluetooth em modo teclado (HID), configurado para enviar Enter ao final. Clique no campo antes de ler. A etiqueta atual contém uma URL QR e o código legível; leitores laser exclusivamente 1D não leem esse QR. Configure o teclado do leitor para o mesmo layout do computador, especialmente para pontuação da URL. Teste no equipamento real antes de imprimir todo o lote.
+
+O scanner abre o equipamento cadastrado. Não descobre modelo, marca ou descrição a partir do QR e não cadastra automaticamente um equipamento desconhecido. Códigos de fabricante podem identificar apenas o modelo e não cada unidade física. A geração de patrimônios do sistema continua sendo a referência de identificação.
+
+A leitura não registra saída, devolução ou ajuste de estoque; essas ações continuam exigindo conferência na ficha ou no evento. As permissões de cada perfil continuam aplicadas. Esta função não adiciona isolamento entre empresas: mantenha uma instalação por empresa até implementar a arquitetura multiempresa.
